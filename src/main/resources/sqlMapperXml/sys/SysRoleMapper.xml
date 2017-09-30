@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.imobpay.mapper.sys.SysRoleMapper">
+
+    
+    <resultMap id="SysRole" type="com.imobpay.model.system.SysRole">
+        <result column="ROLEID" property="roleId" />
+        <result column="ROLENAME" property="roleName" />
+    </resultMap>
+ 
+
+	<select id = "selectRolesByUserId" parameterType="java.lang.String" resultMap="SysRole">
+	        SELECT UR.ROLEID, R.ROLENAME
+			    FROM TB_SYS_USER_ROLE UR
+			    LEFT JOIN TB_SYS_ROLE R 
+			      ON UR.ROLEID = R.ROLEID
+			    where UR.USERID = #{userId}
+	</select>
+	
+	
+    <select id = "selectRoleListCount" parameterType="SysRole" resultType="java.lang.Integer">
+            SELECT  nvl(count(1),0)
+                FROM  TB_SYS_ROLE R 
+                WHERE  1=1 
+                <if test=" roleName != null and roleName !='' ">
+                  AND  R.ROLENAME LIKE '%${roleName}%'
+                </if>
+                <if test=" roleId != null and roleId !='' ">
+                  AND  R.ROLEID != #{roleId}
+                </if>
+    </select>
+    
+    <select id = "selectRoleList" parameterType="SysRole" resultMap="SysRole">
+          SELECT *
+            FROM (SELECT M.*,ROWNUM RN
+                    FROM (SELECT R.ROLEID, R.ROLENAME
+                            FROM TB_SYS_ROLE R
+                          WHERE  1=1 
+			                <if test=" roleName != null and roleName !='' ">
+			                  AND  R.ROLENAME LIKE '%${roleName}%'
+			                </if>
+                           ORDER BY R.ROLEID) M) N
+            where n.rn >  ${start}
+             and  <![CDATA[ rn < = ${end} ]]>     
+    </select>
+    
+    <update id="updateRole" parameterType="SysRole">
+		 UPDATE TB_SYS_ROLE
+		    SET   ROLENAME = #{roleName}
+		  WHERE ROLEID = #{roleId} 
+    </update>
+    
+    <delete id="deleteRole" parameterType="SysRole">
+        DELETE FROM TB_SYS_ROLE
+           WHERE ROLEID = #{roleId} 
+    </delete>
+    
+    <select id="selectSysRoleList" resultMap="SysRole" >
+          SELECT R.ROLEID, R.ROLENAME
+              FROM TB_SYS_ROLE R
+    </select>
+    
+    <select id ="selectUserExistByRoleId" parameterType="java.lang.String" resultType="map" >
+           SELECT COUNT(1) EXISTS_SUM FROM TB_SYS_USER_ROLE
+            WHERE ROLEID =  #{roleId} 
+    </select>
+    
+    
+    <insert id="insertRole"  parameterType="SysRole" >
+            INSERT INTO TB_SYS_ROLE
+			  (ROLEID, ROLENAME)
+			values
+			  (SEQ_SYS_ROLE_ID.NEXTVAL, #{roleName})
+    </insert>
+
+
+</mapper>

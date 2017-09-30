@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.imobpay.mapper.sys.SysUserOperLogMapper">
+
+  
+	
+	<insert id="insertOperLog" parameterType="SysUserOperLog">
+			INSERT INTO TB_SYS_USER_OPER_LOG
+			  (OPER_ID,
+			  <if test=" userId != null and userId !='' ">
+			     USERID,
+			  </if>
+			   OPER_TYPE,
+			   OPER_DESC,
+			   OPER_TIME,
+			   MODULE_NAME,
+			   IP_ADDR,
+			   ACTION_TIME,
+			   OPER_CONTENT)
+			VALUES
+			  (SEQ_OPERLOG_ID.nextval ,
+			  <if test=" userId != null and userId !='' ">
+                    #{userId},
+              </if>
+			   #{operType,jdbcType=VARCHAR},
+			   #{operDesc,jdbcType=VARCHAR},
+			   #{operTime,jdbcType=VARCHAR},
+			   #{moduleName,jdbcType=VARCHAR},
+			   #{ipAddr,jdbcType=VARCHAR},
+			   #{actionTime,jdbcType=VARCHAR},
+			   #{operContent,jdbcType=VARCHAR}) 
+	</insert>
+	
+	<select id="selectOperLogList" parameterType="SysUserOperLog" resultType="com.imobpay.model.system.SysUserOperLog">
+	  SELECT *
+         FROM (SELECT M.*,ROWNUM RN
+                 FROM (
+					SELECT L.OPER_ID      OPERID,
+					       L.USERID       USERID,
+					       L.OPER_TYPE    OPERTYPE,
+					       L.OPER_DESC    OPERDESC,
+					       L.OPER_TIME    OPERTIME,
+					       L.MODULE_NAME  MODULENAME,
+					       L.IP_ADDR      IPADDR,
+					       L.ACTION_TIME  ACTIONTIME, 
+					       U.LOGINNAME
+					  FROM TB_SYS_USER_OPER_LOG L
+					  LEFT JOIN TB_SYS_USER U
+					    ON L.USERID = U.USERID
+				      WHERE 1=1 
+				         <if test=" operTime != null and operTime !=''" >
+				            AND   L.OPER_TIME   like '${operTime}%'
+				         </if>
+				       ORDER BY L.OPER_TIME DESC 
+	           ) M) N
+            where n.rn >  ${start}
+             and  <![CDATA[ rn < = ${end} ]]> 
+	</select>
+	
+	<select id="selectOperLogCount" parameterType="SysUserOperLog" resultType="java.lang.Integer">
+	     SELECT COUNT(1) 
+	     FROM TB_SYS_USER_OPER_LOG L
+        WHERE 1=1 
+           <if test=" operTime != null and operTime !=''" >
+              AND   L.OPER_TIME   like '${operTime}%'
+           </if>
+	</select>
+
+</mapper>

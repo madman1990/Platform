@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.imobpay.mapper.sys.SysParamMapper">
+
+	<select id = "selectSysParamByType" parameterType="java.lang.String" resultType="com.imobpay.model.system.SysParam">
+	         SELECT PARAM_CODE AS PARAMCODE ,
+		            PARAM_TYPE AS PARAMTYPE,
+		            PARAM_NAME AS PARAMNAME,
+		            PARAM_VALUE1 AS PARAMVALUE1,
+		            PARAM_VALUE2 AS PARAMVALUE2,
+		            MEMO
+		       FROM TB_SYS_PARAM
+		       WHERE PARAM_TYPE = #{paramType}
+		       order by PARAM_CODE
+	</select> 
+	
+	<select id="selectCustLevel" resultType="java.util.Map">
+	     SELECT L.CUSTOMER_LEVEL_ID   AS LEVELID,
+	            L.CUSTOMER_LEVEL_NAME AS LEVELNAME
+	       FROM TB_CUST_LEVEL L
+	      INNER JOIN TB_CUST_LEVEL_RULE R
+	         ON L.CUSTOMER_LEVEL_ID = R.CUSTOMER_LEVEL_ID
+	      WHERE R.STATUS = '1'
+	      ORDER BY  R.GROW_VAL_BEGIN_VAL 
+	</select>
+	
+	<select id="selectAwardLevel"  resultType="java.util.Map" >
+		SELECT A.AWARD_LEVEL as AWARD_LEVEL, A.AWARD_LEVEL_NAME  as AWARD_LEVEL_NAME
+		      FROM TB_MKT_AWARD_LEVEL A
+		  WHERE A.AWARD_LEVEL != 0
+             ORDER BY A.AWARD_LEVEL
+	</select>
+	
+	<select id="selectAppList" resultType="java.util.Map">
+	      SELECT APP_ID APPID, APP_NAME APPNAME FROM TB_SYS_APP
+	</select>
+	
+	<select id="selectBranchList" resultType="java.util.Map" parameterType="map" >
+		SELECT BRANCH_ID BRANCHID, BRANCH_NAME BRANCHNAME 
+		  FROM TB_SYS_BRANCH
+		  WHERE 1=1
+		  <if test=" appId!=null and appId !='' ">
+		    AND  APP_ID  in (${appId})
+		  </if>
+		          
+	</select>
+	
+ 
+
+</mapper>

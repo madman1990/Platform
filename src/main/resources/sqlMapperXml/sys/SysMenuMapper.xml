@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.imobpay.mapper.sys.SysMenuMapper">
+
+
+	<resultMap id="SysMenu" type="com.imobpay.model.system.SysMenu">
+		<result column="MENU_CODE" property="menuCode" />
+		<result column="MENU_NAME" property="menuName" />
+		<result column="MENU_DESC" property="menuDesc" />
+		<result column="MENU_URL" property="menuUrl" />
+		<result column="UP_MENU_CODE" property="upMenuCode" />
+		<result column="MENU_LEVEL" property="menuLevel" />
+		<result column="STATUS" property="status" />
+		<result column="CHILDCODE" property="childCode" />
+
+	</resultMap>
+
+
+	<select id="selectMenuByUserId" parameterType="java.lang.String" resultMap="SysMenu">
+			WITH CHILD_M AS
+			 (SELECT M.*
+			    FROM TB_SYS_MENU M
+			   INNER JOIN TB_SYS_ROLE_MENU RM
+			      ON M.MENU_CODE = RM.MENU_CODE
+			     INNER JOIN TB_SYS_USER_ROLE UR
+			    ON RM.ROLEID = UR.ROLEID
+			   WHERE UR.USERID = #{userId}
+			     AND M.STATUS = '1'),
+			PARENT_M AS
+			 (SELECT *
+			    FROM TB_SYS_MENU M
+			   WHERE EXISTS
+			   (SELECT 1 FROM CHILD_M CM WHERE M.MENU_CODE = CM.UP_MENU_CODE))
+			
+			SELECT M.MENU_CODE,
+			       M.MENU_NAME,
+			       M.MENU_DESC,
+			       M.MENU_URL,
+			       M.UP_MENU_CODE,
+			       M.MENU_LEVEL,
+			       M.STATUS,
+			       DECODE(MN.CHILDCO, NULL, 0, 1) CHILDCODE
+			  FROM (SELECT * FROM CHILD_M UNION  SELECT * FROM PARENT_M) M
+			  LEFT JOIN (SELECT UP_MENU_CODE, COUNT(1) CHILDCO
+			               FROM TB_SYS_MENU
+			              WHERE UP_MENU_CODE IS NOT NULL
+			              GROUP BY UP_MENU_CODE) MN
+			    ON MN.UP_MENU_CODE = M.MENU_CODE
+			 ORDER BY M.MENU_LEVEL, M.MENU_CODE
+		 
+	</select>
+	
+	<select id="selectMenuList"   parameterType="SysMenu" resultMap="SysMenu">
+	       SELECT *
+         FROM (SELECT M.*,ROWNUM RN
+                 FROM (
+					   SELECT M.MENU_CODE    AS MENUCODE,
+				       M.MENU_NAME    AS MENUNAME,
+				       M.MENU_DESC    AS MENUDESC,
+				       M.MENU_URL     AS MENUURL,
+				       M.UP_MENU_CODE AS UPMENUCODE,
+				       M.MENU_LEVEL   AS MENULEVEL,
+				       M.STATUS,
+				       U.MENU_NAME    UPMENUNAME
+				  FROM TB_SYS_MENU M
+				  LEFT JOIN TB_SYS_MENU U
+				    ON M.UP_MENU_CODE = U.MENU_CODE
+				 WHERE M.STATUS= '1' 
+				    <if test=" menuName!= null and menuName!=''" >
+				         AND M.MENU_NAME LIKE '%${menuName}%'
+				    </if>
+				    ORDER BY M.MENU_CODE DESC
+		      ) M) N
+            where n.rn >  ${start}
+             and  <![CDATA[ rn < = ${end} ]]> 
+	</select>
+	
+	<select id="selectMenuCount"   parameterType="SysMenu" resultType="java.lang.Integer">
+	       SELECT COUNT(1)    FROM TB_SYS_MENU M
+	        WHERE M.STATUS= '1' 
+               <if test=" menuName!= null and menuName!=''" >
+                    AND M.MENU_NAME LIKE '%${menuName}%'
+               </if>
+                <if test=" menuCode != null and menuCode != '' " >
+                    AND M.MENU_CODE !=  #{menuCode}
+               </if>
+	</select>
+
+    <select id="selectUpMenu" resultMap="SysMenu">
+            SELECT M.MENU_CODE    AS MENUCODE,
+		           M.MENU_NAME    AS MENUNAME,
+		           M.MENU_DESC    AS MENUDESC,
+		           M.MENU_URL     AS MENUURL,
+		           M.UP_MENU_CODE AS UPMENU_CODE,
+		           M.MENU_LEVEL   AS MENULEVEL,
+		           M.STATUS
+		      FROM TB_SYS_MENU M
+		     WHERE M.STATUS = '1'
+		       AND M.MENU_LEVEL = '1'
+		       order by M.MENU_CODE 
+    </select>
+
+    <insert id="insertMenu"   parameterType="SysMenu"  >
+         INSERT INTO TB_SYS_MENU
+		  (MENU_CODE,
+		   MENU_NAME,
+		   MENU_DESC,
+		   MENU_URL,
+		   UP_MENU_CODE,
+		   MENU_LEVEL,
+		   STATUS)
+		VALUES
+		  (SEQ_SYS_MENU_ID.NEXTVAL,
+		   #{menuName,jdbcType=VARCHAR},
+		     #{menuDesc,jdbcType=VARCHAR},
+		     #{menuUrl,jdbcType=VARCHAR},
+		     #{upMenuCode,jdbcType=VARCHAR},
+		     #{menuLevel,jdbcType=VARCHAR},
+		     '1') 
+    </insert>
+    
+    <update id="updateMenu"   parameterType="SysMenu" >
+        UPDATE TB_SYS_MENU
+		   SET MENU_CODE = #{menuCode} 
+		        <if test=" menuName != null and menuName != '' ">
+                    ,MENU_NAME = #{menuName,jdbcType=VARCHAR}
+               </if>
+                <if test=" menuDesc != null and menuDesc != '' ">
+                    ,MENU_DESC =  #{menuDesc,jdbcType=VARCHAR}
+               </if>
+               <if test=" menuUrl != null and menuUrl != '' ">
+                    ,MENU_URL =  #{menuUrl,jdbcType=VARCHAR}
+               </if>
+               <if test=" upMenuCode != null and upMenuCode != '' ">
+                    ,UP_MENU_CODE =  #{upMenuCode,jdbcType=VARCHAR}
+               </if>
+                <if test=" upMenuCode == null or upMenuCode == '' ">
+                    ,UP_MENU_CODE =  #{upMenuCode,jdbcType=VARCHAR}
+               </if>
+               <if test=" menuLevel != null and menuLevel != '' ">
+                    ,MENU_LEVEL =  #{menuLevel,jdbcType=VARCHAR}
+               </if>
+		       <if test=" status != null and status != '' ">
+		            ,STATUS = #{status}
+		       </if>
+		 WHERE MENU_CODE = #{menuCode}
+    </update>
+
+    <select id="checkUsedMenu" parameterType="java.lang.String" resultType="java.lang.Integer" >
+            SELECT SUM(CO)
+			   FROM (SELECT COUNT(1) CO
+			           FROM TB_SYS_ROLE_MENU
+			          WHERE MENU_CODE =  #{menuCode}
+			         UNION
+			         SELECT COUNT(1)
+			           FROM TB_SYS_MENU
+			          WHERE UP_MENU_CODE =  #{menuCode}
+			              AND  STATUS= '1' )
+    </select>
+    
+    <select id="selectRoleMenu"  resultMap="SysMenu" >
+        SELECT M.MENU_CODE,
+		       M.MENU_NAME,
+		       M.MENU_DESC,
+		       M.MENU_URL,
+		       M.UP_MENU_CODE,
+		       M.MENU_LEVEL,
+               DECODE(MN.CHILDCO, NULL, 0, 1) CHILDCODE
+		  FROM TB_SYS_MENU M 
+		  LEFT JOIN (SELECT UP_MENU_CODE, COUNT(1) CHILDCO
+                       FROM TB_SYS_MENU
+                      WHERE UP_MENU_CODE IS NOT NULL
+                      GROUP BY UP_MENU_CODE) MN
+            ON MN.UP_MENU_CODE = M.MENU_CODE
+		 WHERE M.STATUS = '1'
+    </select>
+    
+    <select id="selectMenuByRoleId" resultMap="SysMenu" parameterType="java.lang.String" >
+            select ROLEID, MENU_CODE  MENUCODE from TB_SYS_ROLE_MENU
+            where roleId= #{roleId,jdbcType=VARCHAR}
+    
+    </select>
+    
+      <insert id="insertRoleMenu"   parameterType="java.util.List">
+             BEGIN
+            <foreach collection="list" item="item" index="index" separator=";" >
+                INSERT INTO TB_SYS_ROLE_MENU
+		          (ROLEID, MENU_CODE)
+		        VALUES
+                  ( 
+                   #{item.roleId,jdbcType=VARCHAR}, 
+                   #{item.menuCode,jdbcType=VARCHAR})
+            </foreach>
+             ;END ;
+       </insert>
+       
+       <delete id="deleteRoleMenu" parameterType="java.lang.String">
+           DELETE FROM TB_SYS_ROLE_MENU
+           WHERE ROLEID = #{ roleId,jdbcType=VARCHAR} 
+       </delete>
+   
+    
+
+</mapper>
